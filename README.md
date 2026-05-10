@@ -26,4 +26,4 @@ Place local dependency jars in `libs/mods/`, then run:
 ./gradlew build
 ```
 
-License: All Rights Reserved.
+License: MIT.

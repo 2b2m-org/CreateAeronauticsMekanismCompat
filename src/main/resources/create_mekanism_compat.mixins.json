@@ -1,0 +1,26 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "com.jarrettonesource.createmekanismcompat.mixin",
+  "plugin": "com.jarrettonesource.createmekanismcompat.mixin.CmcMixinPlugin",
+  "compatibilityLevel": "JAVA_21",
+  "mixins": [
+    "TileEntityDigitalMinerAccessor",
+    "TileEntityDigitalMinerMixin",
+    "SubLevelPhysicsSystemMixin",
+    "TileEntityDimensionalStabilizerMixin",
+    "TileEntityTransmitterMixin",
+    "TileEntityUpdateableMixin",
+    "TileEntityTeleporterAccessor",
+    "TileEntityTeleporterMixin",
+    "TileEntityWindGeneratorMixin"
+  ],
+  "client": [
+    "client.BlockBoundingMixin",
+    "client.BlockTransmitterMixin",
+    "client.GuiDigitalMinerMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

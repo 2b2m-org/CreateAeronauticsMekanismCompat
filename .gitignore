@@ -1,0 +1,12 @@
+.gradle/
+build/
+repo/
+run/
+out/
+
+*.log
+*.tmp
+*.bak
+
+libs/mods/*.jar
+!gradle/wrapper/gradle-wrapper.jar

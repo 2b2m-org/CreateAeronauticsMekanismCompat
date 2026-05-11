@@ -4,11 +4,13 @@ Compatibility fixes for Mekanism blocks on Create Aeronautics / Sable contraptio
 
 ## Currently Supported
 
-- Mekanism Teleporter destination targeting on mounted contraptions.
-- Mekanism Dimensional Stabilizer chunk tickets from mounted contraptions.
-- Mekanism transmitters/pipes: configurator targeting, side selection, and visual updates while mounted.
-- Mekanism Wind Generator projected height/sky checks while mounted. Disabled by default; enable in server config.
-- Mekanism Digital Miner projected scanning/mining while mounted. Disabled by default; enable in server config.
+All integrations are enabled by default.
+
+- Mekanism Teleporters resolve mounted target positions and energy cost from projected world coordinates.
+- Mekanism Dimensional Stabilizers keep chunk tickets aligned with the moving contraption.
+- Mekanism transmitters/pipes support configurator targeting, side selection, and visual state updates while mounted.
+- Mekanism Wind Generators use projected height and sky checks while mounted.
+- Mekanism Digital Miners scan, display queued targets, chunk-load scan targets, and mine from projected world coordinates.
 
 ## Targets
 

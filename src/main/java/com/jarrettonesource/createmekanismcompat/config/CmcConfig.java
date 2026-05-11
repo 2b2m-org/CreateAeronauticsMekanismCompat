@@ -21,7 +21,7 @@ public final class CmcConfig {
 
         ENABLE_MOUNTED_DIGITAL_MINER = builder
                 .comment("Allow Digital Miners inside Sable sub-levels to scan and mine from the ship's projected world position.")
-                .define("enableMountedDigitalMiner", false);
+                .define("enableMountedDigitalMiner", true);
 
         ENABLE_MOUNTED_TELEPORTER_TARGETS = builder
                 .comment("Project mounted Teleporter destination positions out of the Sable sub-level into global world coordinates.")
@@ -33,7 +33,7 @@ public final class CmcConfig {
 
         ENABLE_MOUNTED_WIND_GENERATOR = builder
                 .comment("Use the projected world position for Wind Generator sky and height checks inside Sable sub-levels.")
-                .define("enableMountedWindGenerator", false);
+                .define("enableMountedWindGenerator", true);
 
         DIGITAL_MINER_SCAN_BUDGET = builder
                 .comment("Maximum world positions a mounted Digital Miner inspects each scan pass before yielding.")

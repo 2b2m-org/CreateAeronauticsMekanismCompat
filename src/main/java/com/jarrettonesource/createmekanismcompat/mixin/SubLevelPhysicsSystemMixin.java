@@ -1,6 +1,8 @@
 package com.jarrettonesource.createmekanismcompat.mixin;
 
 import com.jarrettonesource.createmekanismcompat.mounted.MountedDimensionalStabilizerTickets;
+import com.jarrettonesource.createmekanismcompat.mounted.MountedTeleporterFrequencies;
+import com.jarrettonesource.createmekanismcompat.mounted.MountedTeleporterSources;
 import dev.ryanhcode.sable.api.sublevel.ServerSubLevelContainer;
 import dev.ryanhcode.sable.api.sublevel.SubLevelContainer;
 import dev.ryanhcode.sable.sublevel.ServerSubLevel;
@@ -16,6 +18,8 @@ public abstract class SubLevelPhysicsSystemMixin {
     private void cmc$refreshMountedTicketsBeforeChunkChecks(SubLevelContainer sidelessContainer, CallbackInfo callback) {
         if (sidelessContainer instanceof ServerSubLevelContainer container) {
             MountedDimensionalStabilizerTickets.refresh(container);
+            MountedTeleporterFrequencies.refresh(container);
+            MountedTeleporterSources.tick(container);
         }
     }
 

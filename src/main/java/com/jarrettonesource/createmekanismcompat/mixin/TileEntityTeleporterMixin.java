@@ -4,18 +4,17 @@ import com.jarrettonesource.createmekanismcompat.config.CmcConfig;
 import com.jarrettonesource.createmekanismcompat.mounted.ChunkTicketPolicy;
 import com.jarrettonesource.createmekanismcompat.mounted.MountedAabb;
 import com.jarrettonesource.createmekanismcompat.mounted.MountedMekanismContextResolver;
+import com.jarrettonesource.createmekanismcompat.mounted.MountedTeleporterTargets;
 import java.util.List;
 import java.util.Set;
+import mekanism.common.content.teleporter.TeleporterFrequency;
 import mekanism.common.tile.TileEntityTeleporter;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.GlobalPos;
-import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.phys.AABB;
-import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
@@ -49,6 +48,16 @@ public abstract class TileEntityTeleporterMixin {
         });
     }
 
+    @Inject(method = "getClosest", at = @At("HEAD"), cancellable = true)
+    private void cmc$getProjectedClosestTeleporter(@Nullable TeleporterFrequency frequency, CallbackInfoReturnable<GlobalPos> callback) {
+        if (!CmcConfig.ENABLE_MOUNTED_TELEPORTER_TARGETS.get()) {
+            return;
+        }
+        TileEntityTeleporter teleporter = (TileEntityTeleporter) (Object) this;
+        MountedMekanismContextResolver.resolve(teleporter)
+                .ifPresent(context -> callback.setReturnValue(MountedTeleporterTargets.resolveClosestForMountedSource(context, frequency)));
+    }
+
     @Redirect(
             method = "cleanTeleportCache",
             at = @At(value = "INVOKE", target = "Lnet/minecraft/world/level/Level;getEntitiesOfClass(Ljava/lang/Class;Lnet/minecraft/world/phys/AABB;)Ljava/util/List;")
@@ -79,16 +88,21 @@ public abstract class TileEntityTeleporterMixin {
         return cmc$calculateProjectedEnergyCost(entity, targetWorld, coords);
     }
 
+    @Redirect(
+            method = "teleport",
+            at = @At(value = "INVOKE", target = "Lmekanism/common/tile/TileEntityTeleporter;getTeleporterTargetPos()Lnet/minecraft/core/BlockPos;")
+    )
+    private BlockPos cmc$getProjectedTeleportTarget(TileEntityTeleporter targetTeleporter) {
+        return MountedTeleporterTargets.resolveProjectedTarget(targetTeleporter);
+    }
+
     @Inject(method = "getTeleporterTargetPos", at = @At("RETURN"), cancellable = true)
     private void cmc$projectMountedTeleporterTarget(CallbackInfoReturnable<BlockPos> callback) {
         if (!CmcConfig.ENABLE_MOUNTED_TELEPORTER_TARGETS.get()) {
             return;
         }
         TileEntityTeleporter teleporter = (TileEntityTeleporter) (Object) this;
-        MountedMekanismContextResolver.resolve(teleporter).ifPresent(context -> {
-            Vec3 globalTarget = MountedMekanismContextResolver.localToGlobal(context, callback.getReturnValue());
-            callback.setReturnValue(BlockPos.containing(globalTarget));
-        });
+        callback.setReturnValue(MountedTeleporterTargets.projectIfLocal(teleporter, callback.getReturnValue()));
     }
 
     @Inject(method = "getChunkSet", at = @At("HEAD"), cancellable = true)
@@ -119,12 +133,6 @@ public abstract class TileEntityTeleporterMixin {
 
     @Unique
     private static long cmc$calculateProjectedEnergyCost(Entity entity, Level targetWorld, GlobalPos coords) {
-        if (CmcConfig.ENABLE_MOUNTED_TELEPORTER_TARGETS.get() && targetWorld instanceof ServerLevel serverLevel) {
-            BlockEntity blockEntity = serverLevel.getBlockEntity(coords.pos());
-            if (blockEntity instanceof TileEntityTeleporter targetTeleporter && MountedMekanismContextResolver.resolve(targetTeleporter).isPresent()) {
-                return TileEntityTeleporter.calculateEnergyCost(entity, targetWorld, GlobalPos.of(coords.dimension(), targetTeleporter.getTeleporterTargetPos()));
-            }
-        }
-        return TileEntityTeleporter.calculateEnergyCost(entity, targetWorld, coords);
+        return MountedTeleporterTargets.calculateProjectedEnergyCost(entity, targetWorld, coords);
     }
 }

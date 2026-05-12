@@ -11,6 +11,7 @@ All integrations are enabled by default.
 - Mekanism transmitters/pipes support configurator targeting, side selection, and visual state updates while mounted.
 - Mekanism Wind Generators use projected height and sky checks while mounted.
 - Mekanism Digital Miners scan, display queued targets, chunk-load scan targets, and mine from projected world coordinates.
+- Mekanism Bigger Teleporters target positions are projected back into world coordinates while mounted.
 
 ## Targets
 

@@ -6,6 +6,9 @@
   "compatibilityLevel": "JAVA_21",
   "mixins": [
     "TileEntityDigitalMinerAccessor",
+    "BlockBoundingAssemblyMixin",
+    "BlockBoundingCollisionMixin",
+    "BlockMekanismAssemblyMixin",
     "TileEntityDigitalMinerMixin",
     "SubLevelPhysicsSystemMixin",
     "TileEntityDimensionalStabilizerMixin",

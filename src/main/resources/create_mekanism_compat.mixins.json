@@ -12,6 +12,7 @@
     "BlockTileAssemblyMixin",
     "ChemicalNetworkAssemblyMoveMixin",
     "TileEntityDigitalMinerMixin",
+    "TileEntityBasicLaserMixin",
     "RadiationManagerAssemblyMoveMixin",
     "SubLevelPhysicsSystemMixin",
     "SubLevelAssemblyHelperMoveMixin",
@@ -25,7 +26,8 @@
   "client": [
     "client.BlockBoundingMixin",
     "client.BlockTransmitterMixin",
-    "client.GuiDigitalMinerMixin"
+    "client.GuiDigitalMinerMixin",
+    "client.LaserParticleMixin"
   ],
   "injectors": {
     "defaultRequire": 1

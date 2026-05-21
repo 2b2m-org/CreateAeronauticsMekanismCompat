@@ -9,6 +9,7 @@ public final class CmcConfig {
     public static final ModConfigSpec.BooleanValue ENABLE_MOUNTED_TELEPORTER_TARGETS;
     public static final ModConfigSpec.BooleanValue ENABLE_MOUNTED_DIMENSIONAL_STABILIZER;
     public static final ModConfigSpec.BooleanValue ENABLE_MOUNTED_WIND_GENERATOR;
+    public static final ModConfigSpec.BooleanValue ENABLE_MOUNTED_LASERS;
     public static final ModConfigSpec.IntValue DIGITAL_MINER_SCAN_BUDGET;
     public static final ModConfigSpec.IntValue DIGITAL_MINER_SCAN_TIME_BUDGET_MICROS;
     public static final ModConfigSpec.IntValue DIGITAL_MINER_MAX_TARGET_QUEUE;
@@ -34,6 +35,10 @@ public final class CmcConfig {
         ENABLE_MOUNTED_WIND_GENERATOR = builder
                 .comment("Use the projected world position for Wind Generator sky and height checks inside Sable sub-levels.")
                 .define("enableMountedWindGenerator", true);
+
+        ENABLE_MOUNTED_LASERS = builder
+                .comment("Keep Mekanism Laser ray hits and beam particles in the correct coordinate space when crossing Sable sub-level boundaries.")
+                .define("enableMountedLasers", true);
 
         DIGITAL_MINER_SCAN_BUDGET = builder
                 .comment("Maximum world positions a mounted Digital Miner inspects each scan pass before yielding.")

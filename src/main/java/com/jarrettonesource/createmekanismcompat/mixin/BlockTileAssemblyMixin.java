@@ -2,25 +2,20 @@ package com.jarrettonesource.createmekanismcompat.mixin;
 
 import com.jarrettonesource.createmekanismcompat.assembly.MekanismAssemblyMoveTracker;
 import dev.ryanhcode.sable.api.block.BlockSubLevelAssemblyListener;
-import mekanism.common.block.BlockMekanism;
-import mekanism.common.block.transmitter.BlockTransmitter;
+import mekanism.common.block.prefab.BlockTile;
 import mekanism.common.tile.base.TileEntityMekanism;
 import mekanism.common.tile.base.TileEntityUpdateable;
-import mekanism.common.tile.transmitter.TileEntityTransmitter;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import org.spongepowered.asm.mixin.Mixin;
 
-@Mixin(value = BlockMekanism.class, remap = false)
-public abstract class BlockMekanismAssemblyMixin implements BlockSubLevelAssemblyListener {
+@Mixin(value = BlockTile.class, remap = false)
+public abstract class BlockTileAssemblyMixin implements BlockSubLevelAssemblyListener {
     @Override
     public void beforeMove(ServerLevel sourceLevel, ServerLevel resultingLevel, BlockState state, BlockPos oldPos, BlockPos newPos) {
         MekanismAssemblyMoveTracker.markSourceMove(sourceLevel, oldPos);
-        if (state.getBlock() instanceof BlockTransmitter || sourceLevel.getBlockEntity(oldPos) instanceof TileEntityTransmitter) {
-            MekanismAssemblyMoveTracker.markDeferredTransmitterSourceMove(sourceLevel, oldPos);
-        }
     }
 
     @Override
@@ -31,9 +26,6 @@ public abstract class BlockMekanismAssemblyMixin implements BlockSubLevelAssembl
         }
         if (movedTile instanceof TileEntityMekanism mekanismTile) {
             mekanismTile.resyncMasterToBounding();
-        }
-        if (movedTile instanceof TileEntityTransmitter transmitter) {
-            transmitter.onAdded();
         }
     }
 }

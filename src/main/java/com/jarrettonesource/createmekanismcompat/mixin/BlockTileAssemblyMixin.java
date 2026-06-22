@@ -1,6 +1,7 @@
 package com.jarrettonesource.createmekanismcompat.mixin;
 
 import com.jarrettonesource.createmekanismcompat.assembly.MekanismAssemblyMoveTracker;
+import com.jarrettonesource.createmekanismcompat.assembly.TeleporterFrequencyMoveSync;
 import dev.ryanhcode.sable.api.block.BlockSubLevelAssemblyListener;
 import mekanism.common.block.prefab.BlockTile;
 import mekanism.common.tile.base.TileEntityMekanism;
@@ -16,6 +17,7 @@ public abstract class BlockTileAssemblyMixin implements BlockSubLevelAssemblyLis
     @Override
     public void beforeMove(ServerLevel sourceLevel, ServerLevel resultingLevel, BlockState state, BlockPos oldPos, BlockPos newPos) {
         MekanismAssemblyMoveTracker.markSourceMove(sourceLevel, oldPos);
+        TeleporterFrequencyMoveSync.beforeMove(sourceLevel.getBlockEntity(oldPos));
     }
 
     @Override
@@ -27,5 +29,6 @@ public abstract class BlockTileAssemblyMixin implements BlockSubLevelAssemblyLis
         if (movedTile instanceof TileEntityMekanism mekanismTile) {
             mekanismTile.resyncMasterToBounding();
         }
+        TeleporterFrequencyMoveSync.afterMove(movedTile);
     }
 }

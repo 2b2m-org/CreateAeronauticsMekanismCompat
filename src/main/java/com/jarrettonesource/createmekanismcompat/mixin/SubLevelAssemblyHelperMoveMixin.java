@@ -28,6 +28,7 @@ public abstract class SubLevelAssemblyHelperMoveMixin {
             Iterable<BlockPos> positions,
             CallbackInfo callback
     ) {
+        MekanismAssemblyMoveTracker.refreshMovedTransmitters(transform, positions);
         MekanismAssemblyMoveTracker.endMoveBlocks();
     }
 }

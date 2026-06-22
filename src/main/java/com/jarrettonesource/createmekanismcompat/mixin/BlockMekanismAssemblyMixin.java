@@ -1,6 +1,7 @@
 package com.jarrettonesource.createmekanismcompat.mixin;
 
 import com.jarrettonesource.createmekanismcompat.assembly.MekanismAssemblyMoveTracker;
+import com.jarrettonesource.createmekanismcompat.assembly.TeleporterFrequencyMoveSync;
 import dev.ryanhcode.sable.api.block.BlockSubLevelAssemblyListener;
 import mekanism.common.block.BlockMekanism;
 import mekanism.common.block.transmitter.BlockTransmitter;
@@ -18,8 +19,9 @@ public abstract class BlockMekanismAssemblyMixin implements BlockSubLevelAssembl
     @Override
     public void beforeMove(ServerLevel sourceLevel, ServerLevel resultingLevel, BlockState state, BlockPos oldPos, BlockPos newPos) {
         MekanismAssemblyMoveTracker.markSourceMove(sourceLevel, oldPos);
+        TeleporterFrequencyMoveSync.beforeMove(sourceLevel.getBlockEntity(oldPos));
         if (state.getBlock() instanceof BlockTransmitter || sourceLevel.getBlockEntity(oldPos) instanceof TileEntityTransmitter) {
-            MekanismAssemblyMoveTracker.markDeferredTransmitterSourceMove(sourceLevel, oldPos);
+            MekanismAssemblyMoveTracker.prepareTransmitterSourceMove(sourceLevel, oldPos);
         }
     }
 
@@ -32,7 +34,9 @@ public abstract class BlockMekanismAssemblyMixin implements BlockSubLevelAssembl
         if (movedTile instanceof TileEntityMekanism mekanismTile) {
             mekanismTile.resyncMasterToBounding();
         }
+        TeleporterFrequencyMoveSync.afterMove(movedTile);
         if (movedTile instanceof TileEntityTransmitter transmitter) {
+            MekanismAssemblyMoveTracker.markMovedTransmitter(resultingLevel, newPos);
             transmitter.onAdded();
         }
     }

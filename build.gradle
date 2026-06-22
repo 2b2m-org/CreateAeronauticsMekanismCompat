@@ -39,18 +39,11 @@ neoForge {
     runs {
         client {
             client()
-            systemProperty 'neoforge.enabledGameTestNamespaces', mod_id
         }
 
         server {
             server()
             programArgument '--nogui'
-            systemProperty 'neoforge.enabledGameTestNamespaces', mod_id
-        }
-
-        gameTestServer {
-            type = 'gameTestServer'
-            systemProperty 'neoforge.enabledGameTestNamespaces', mod_id
         }
 
         configureEach {
@@ -74,12 +67,6 @@ def compatModJars = fileTree(dir: 'libs/mods', include: ['*.jar'])
 
 dependencies {
     compileOnly compatModJars
-    additionalRuntimeClasspath compatModJars
-
-    testCompileOnly files(sourceSets.main.compileClasspath)
-    testRuntimeOnly files(sourceSets.main.runtimeClasspath)
-    testImplementation platform('org.junit:junit-bom:5.10.3')
-    testImplementation 'org.junit.jupiter:junit-jupiter'
 }
 
 jar {
@@ -110,12 +97,16 @@ def generateModMetadata = tasks.register('generateModMetadata', ProcessResources
 sourceSets.main.resources.srcDir generateModMetadata
 neoForge.ideSyncTask generateModMetadata
 
-tasks.withType(JavaCompile).configureEach {
-    options.encoding = 'UTF-8'
+def purgeInstalledSelfModFromDevHome = tasks.register('purgeInstalledSelfModFromDevHome', Delete) {
+    delete fileTree(dir: "${genericMinecraftDevHome.get()}/mods", include: ["${mod_id}-*.jar"])
 }
 
-tasks.named('test', Test) {
-    useJUnitPlatform()
+tasks.matching { it.name in ['runClient', 'runServer'] }.configureEach {
+    dependsOn purgeInstalledSelfModFromDevHome
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
 }
 
 publishing {

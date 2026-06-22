@@ -1,11 +1,14 @@
 package com.jarrettonesource.createmekanismcompat.mixin;
 
+import com.jarrettonesource.createmekanismcompat.mounted.MountedMekanismContextResolver;
 import dev.ryanhcode.sable.api.sublevel.ServerSubLevelContainer;
 import dev.ryanhcode.sable.api.sublevel.SubLevelContainer;
 import dev.ryanhcode.sable.sublevel.ServerSubLevel;
 import mekanism.common.network.PacketUtils;
 import mekanism.common.network.to_client.PacketUpdateTile;
 import mekanism.common.tile.base.TileEntityUpdateable;
+import mekanism.common.tile.transmitter.TileEntityTransmitter;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.ChunkPos;
@@ -22,14 +25,19 @@ public abstract class TileEntityUpdateableMixin {
     private void cmc$sendMountedUpdatePacket(BlockEntity tracking, CallbackInfo callback) {
         TileEntityUpdateable tile = (TileEntityUpdateable) (Object) this;
         ServerLevel level = cmc$serverLevel(tile.getLevel());
-        BlockPos plotPos = cmc$resolvePlotPos(level, tile);
+        BlockPos plotPos = MountedMekanismContextResolver.resolve(tile)
+                .map(context -> context.globalBlockPos())
+                .orElseGet(() -> cmc$resolvePlotPos(level, tile));
         if (level == null || plotPos == null) {
             return;
         }
 
         if (PacketUtils.hasPlayersTracking(level, plotPos)) {
+            CompoundTag updateTag = tile instanceof TileEntityTransmitter
+                    ? tile.getUpdateTag(level.registryAccess())
+                    : tile.getReducedUpdateTag(level.registryAccess());
             PacketUtils.sendToAllTracking(
-                    new PacketUpdateTile(plotPos, tile.getReducedUpdateTag(level.registryAccess())),
+                    new PacketUpdateTile(plotPos, updateTag),
                     level,
                     plotPos
             );

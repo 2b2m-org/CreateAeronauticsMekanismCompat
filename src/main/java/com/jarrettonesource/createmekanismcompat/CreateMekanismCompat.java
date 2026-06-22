@@ -1,5 +1,6 @@
 package com.jarrettonesource.createmekanismcompat;
 
+import com.jarrettonesource.createmekanismcompat.assembly.MekanismAssemblyMoveTracker;
 import com.jarrettonesource.createmekanismcompat.config.CmcConfig;
 import com.jarrettonesource.createmekanismcompat.network.CmcNetwork;
 import com.mojang.logging.LogUtils;
@@ -8,6 +9,7 @@ import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.config.ModConfig;
 import net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent;
+import net.neoforged.neoforge.common.NeoForge;
 import org.slf4j.Logger;
 
 @Mod(CreateMekanismCompat.MOD_ID)
@@ -20,6 +22,7 @@ public final class CreateMekanismCompat {
         modBus.addListener(this::commonSetup);
         modBus.addListener(CmcNetwork::registerPayloads);
         modContainer.registerConfig(ModConfig.Type.SERVER, CmcConfig.SPEC);
+        NeoForge.EVENT_BUS.addListener(MekanismAssemblyMoveTracker::onServerTick);
     }
 
     private void commonSetup(FMLCommonSetupEvent event) {

@@ -16,8 +16,8 @@ All integrations are enabled by default.
 
 - Minecraft 1.21.1
 - NeoForge 21.1.228
-- Create 6.0.10
-- Create Aeronautics 1.2.1 / Sable 1.2.2
+- Sable 1.2.2
+- Tested with Create 6.0.10 and Create Aeronautics 1.2.1
 - Mekanism 10.7.19
 
 ## Build
@@ -27,5 +27,18 @@ Place local dependency jars in `libs/mods/`, then run:
 ```sh
 ./gradlew build
 ```
+
+## Modrinth Release
+
+The repo includes a GitHub Actions workflow at `.github/workflows/publish-modrinth.yml`
+that builds the jar and uploads a version to an existing Modrinth project using the
+official `POST /version` API.
+
+Required secrets:
+
+- `MODRINTH_TOKEN`
+- `MODRINTH_PROJECT_ID`
+
+The workflow can run from a published GitHub release or from manual dispatch.
 
 License: MIT.

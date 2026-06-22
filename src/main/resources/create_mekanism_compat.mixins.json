@@ -5,6 +5,7 @@
   "plugin": "com.jarrettonesource.createmekanismcompat.mixin.CmcMixinPlugin",
   "compatibilityLevel": "JAVA_21",
   "mixins": [
+    "AbstractAcceptorCacheAccessor",
     "TileEntityDigitalMinerAccessor",
     "BlockBoundingAssemblyMixin",
     "BlockBoundingCollisionMixin",
@@ -16,9 +17,12 @@
     "RadiationManagerAssemblyMoveMixin",
     "SubLevelPhysicsSystemMixin",
     "SubLevelAssemblyHelperMoveMixin",
+    "TransmitterContentsUpdateTagMixin",
+    "DynamicBufferedNetworkAccessor",
     "TileEntityDimensionalStabilizerMixin",
     "TileEntityTransmitterMixin",
     "TileEntityUpdateableMixin",
+    "PacketPortableTeleporterTeleportMixin",
     "TileEntityTeleporterAccessor",
     "TileEntityTeleporterMixin",
     "TileEntityWindGeneratorMixin"
@@ -27,7 +31,18 @@
     "client.BlockBoundingMixin",
     "client.BlockTransmitterMixin",
     "client.GuiDigitalMinerMixin",
-    "client.LaserParticleMixin"
+    "client.LaserParticleMixin",
+    "client.MekanismRendererMixin",
+    "client.PacketUpdateTileMixin",
+    "client.RenderEnergyCubeMixin",
+    "client.RenderFluidTankMixin",
+    "client.RenderLogisticalTransporterMixin",
+    "client.RenderMechanicalPipeMixin",
+    "client.RenderPressurizedTubeMixin",
+    "client.RenderThermodynamicConductorMixin",
+    "client.RenderTransmitterBaseMixin",
+    "client.RenderUniversalCableMixin",
+    "client.SoundHandlerMixin"
   ],
   "injectors": {
     "defaultRequire": 1

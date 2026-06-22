@@ -6,10 +6,7 @@ import com.jarrettonesource.createmekanismcompat.mounted.ChunkTicketPolicy;
 import com.jarrettonesource.createmekanismcompat.mounted.MountedAabb;
 import com.jarrettonesource.createmekanismcompat.mounted.MountedMekanismContext;
 import com.jarrettonesource.createmekanismcompat.mounted.MountedMekanismContextResolver;
-import com.jarrettonesource.createmekanismcompat.network.MekanismTeleportSableStatePayload;
-import dev.ryanhcode.sable.api.entity.EntitySubLevelUtil;
-import dev.ryanhcode.sable.mixinterface.entity.entities_stick_sublevels.EntityStickExtension;
-import dev.ryanhcode.sable.mixinterface.entity.entity_sublevel_collision.EntityMovementExtension;
+import com.jarrettonesource.createmekanismcompat.mounted.MountedTeleporterTargeting;
 import java.util.List;
 import java.util.Set;
 import mekanism.api.event.MekanismTeleportEvent;
@@ -24,8 +21,6 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.portal.DimensionTransition;
 import net.minecraft.world.phys.AABB;
-import net.minecraft.world.phys.Vec3;
-import net.neoforged.neoforge.network.PacketDistributor;
 import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
@@ -36,6 +31,9 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(value = TileEntityTeleporter.class, remap = false)
 public abstract class TileEntityTeleporterMixin {
+    @Unique
+    private static final ThreadLocal<Boolean> cmc$portableTrackingSyncPending = ThreadLocal.withInitial(() -> false);
+
     @Unique
     @Nullable
     private ChunkPos cmc$lastGlobalChunk;
@@ -124,6 +122,63 @@ public abstract class TileEntityTeleporterMixin {
         return teleported;
     }
 
+    @Inject(
+            method = "teleportEntityTo",
+            at = @At("HEAD")
+    )
+    private static void cmc$preparePortableSableTracking(
+            Entity entity,
+            Level level,
+            TileEntityTeleporter targetTeleporter,
+            MekanismTeleportEvent.Teleporter event,
+            boolean preserveMotion,
+            DimensionTransition.PostDimensionTransition postTransition,
+            CallbackInfoReturnable<Entity> callback) {
+        cmc$portableTrackingSyncPending.set(false);
+        if (!CmcConfig.ENABLE_MOUNTED_TELEPORTER_TARGETS.get()) {
+            return;
+        }
+        MountedMekanismContext mountedTarget = MountedTeleporterTargeting.resolveMountedTarget(targetTeleporter);
+        if (mountedTarget == null) {
+            return;
+        }
+        net.minecraft.world.phys.Vec3 projectedTarget = MountedTeleporterTargeting.getProjectedTeleporterTarget(targetTeleporter, mountedTarget);
+        if (event.getTarget().distanceToSqr(projectedTarget) <= 1.0E-6) {
+            return;
+        }
+        cmc$portableTrackingSyncPending.set(true);
+        MountedTeleporterTargeting.refineMountedEventTarget(targetTeleporter, mountedTarget, event);
+        MountedTeleporterTargeting.sendClientSableTrackingBeforeTeleport(entity, mountedTarget, event);
+    }
+
+    @Inject(
+            method = "teleportEntityTo",
+            at = @At("RETURN")
+    )
+    private static void cmc$finalizePortableSableTracking(
+            Entity entity,
+            Level level,
+            TileEntityTeleporter targetTeleporter,
+            MekanismTeleportEvent.Teleporter event,
+            boolean preserveMotion,
+            DimensionTransition.PostDimensionTransition postTransition,
+            CallbackInfoReturnable<Entity> callback) {
+        boolean pending = Boolean.TRUE.equals(cmc$portableTrackingSyncPending.get());
+        cmc$portableTrackingSyncPending.remove();
+        if (!pending || !CmcConfig.ENABLE_MOUNTED_TELEPORTER_TARGETS.get()) {
+            return;
+        }
+        Entity teleported = callback.getReturnValue();
+        if (teleported == null) {
+            return;
+        }
+        MountedTeleporterTargeting.syncServerSableTrackingAfterTeleport(
+                teleported,
+                MountedTeleporterTargeting.resolveMountedTarget(targetTeleporter),
+                event
+        );
+    }
+
     @Inject(method = "getChunkSet", at = @At("HEAD"), cancellable = true)
     private void cmc$getMountedChunkSet(CallbackInfoReturnable<Set<ChunkPos>> callback) {
         if (!CmcConfig.ENABLE_MOUNTED_TELEPORTER_TARGETS.get()) {
@@ -152,11 +207,8 @@ public abstract class TileEntityTeleporterMixin {
 
     @Unique
     private static long cmc$calculateProjectedEnergyCost(Entity entity, Level targetWorld, GlobalPos coords) {
-        if (CmcConfig.ENABLE_MOUNTED_TELEPORTER_TARGETS.get() && targetWorld instanceof ServerLevel serverLevel) {
-            BlockEntity blockEntity = serverLevel.getBlockEntity(coords.pos());
-            if (blockEntity instanceof TileEntityTeleporter targetTeleporter && MountedMekanismContextResolver.resolve(targetTeleporter).isPresent()) {
-                return TileEntityTeleporter.calculateEnergyCost(entity, targetWorld, GlobalPos.of(coords.dimension(), cmc$getProjectedTeleporterTargetPos(targetTeleporter)));
-            }
+        if (CmcConfig.ENABLE_MOUNTED_TELEPORTER_TARGETS.get()) {
+            return MountedTeleporterTargeting.calculateProjectedEnergyCost(entity, targetWorld, coords);
         }
         return TileEntityTeleporter.calculateEnergyCost(entity, targetWorld, coords);
     }
@@ -167,86 +219,31 @@ public abstract class TileEntityTeleporterMixin {
         if (!CmcConfig.ENABLE_MOUNTED_TELEPORTER_TARGETS.get()) {
             return localTarget;
         }
-        return MountedMekanismContextResolver.resolve(targetTeleporter)
-                .map(context -> BlockPos.containing(cmc$getProjectedTeleporterTarget(targetTeleporter, context)))
-                .orElse(localTarget);
+        return MountedTeleporterTargeting.getProjectedTeleporterTargetPos(targetTeleporter);
     }
 
     @Unique
     private static void cmc$refineMountedEventTarget(TileEntityTeleporter targetTeleporter, MountedMekanismContext mountedTarget, MekanismTeleportEvent.Teleporter event) {
-        Vec3 roundedProjectedTarget = cmc$bottomCenter(cmc$getProjectedTeleporterTargetPos(targetTeleporter));
-        if (event.getTarget().distanceToSqr(roundedProjectedTarget) > 1.0E-6) {
-            return;
-        }
-        Vec3 preciseProjectedTarget = cmc$getProjectedTeleporterTarget(targetTeleporter, mountedTarget);
-        event.setTargetX(preciseProjectedTarget.x);
-        event.setTargetY(preciseProjectedTarget.y);
-        event.setTargetZ(preciseProjectedTarget.z);
+        MountedTeleporterTargeting.refineMountedEventTarget(targetTeleporter, mountedTarget, event);
     }
 
     @Unique
-    private static Vec3 cmc$getProjectedTeleporterTarget(TileEntityTeleporter targetTeleporter, MountedMekanismContext mountedTarget) {
-        BlockPos localTarget = targetTeleporter.getTeleporterTargetPos();
-        return mountedTarget.subLevel().logicalPose().transformPosition(cmc$bottomCenter(localTarget));
+    private static net.minecraft.world.phys.Vec3 cmc$getProjectedTeleporterTarget(TileEntityTeleporter targetTeleporter, MountedMekanismContext mountedTarget) {
+        return MountedTeleporterTargeting.getProjectedTeleporterTarget(targetTeleporter, mountedTarget);
     }
 
     @Unique
-    private static Vec3 cmc$bottomCenter(BlockPos pos) {
-        return new Vec3(pos.getX() + 0.5, pos.getY(), pos.getZ() + 0.5);
+    private static net.minecraft.world.phys.Vec3 cmc$bottomCenter(BlockPos pos) {
+        return MountedTeleporterTargeting.bottomCenter(pos);
     }
 
     @Unique
     private static void cmc$sendClientSableTrackingBeforeTeleport(Entity entity, @Nullable MountedMekanismContext mountedTarget, MekanismTeleportEvent.Teleporter event) {
-        if (!(entity instanceof ServerPlayer player)) {
-            return;
-        }
-        if (mountedTarget == null) {
-            CreateMekanismCompat.LOGGER.debug("Mekanism teleporter clearing Sable tracking for {} before teleport to {}",
-                    player.getGameProfile().getName(), event.getTarget());
-            PacketDistributor.sendToPlayer(player, MekanismTeleportSableStatePayload.clear());
-            return;
-        }
-
-        Vec3 localTarget = mountedTarget.subLevel().logicalPose().transformPositionInverse(event.getTarget());
-        CreateMekanismCompat.LOGGER.debug(
-                "Mekanism teleporter setting Sable tracking for {} before teleport to sublevel {} local {} global {}",
-                player.getGameProfile().getName(), mountedTarget.subLevelId(), localTarget, event.getTarget());
-        PacketDistributor.sendToPlayer(player, MekanismTeleportSableStatePayload.inside(
-                mountedTarget.subLevelId(),
-                localTarget.x,
-                localTarget.y,
-                localTarget.z));
+        MountedTeleporterTargeting.sendClientSableTrackingBeforeTeleport(entity, mountedTarget, event);
     }
 
     @Unique
     private static void cmc$syncServerSableTrackingAfterTeleport(Entity entity, @Nullable MountedMekanismContext mountedTarget, MekanismTeleportEvent.Teleporter event) {
-        if (mountedTarget != null) {
-            Vec3 localTarget = mountedTarget.subLevel().logicalPose().transformPositionInverse(event.getTarget());
-            if (entity instanceof EntityStickExtension stick) {
-                stick.sable$setPlotPosition(localTarget);
-            }
-            if (entity instanceof EntityMovementExtension movement) {
-                movement.sable$setTrackingSubLevel(mountedTarget.subLevel());
-                movement.sable$setLastTrackingSubLevelID(mountedTarget.subLevelId());
-            }
-            CreateMekanismCompat.LOGGER.debug("Mekanism teleporter server Sable tracking set for {} to sublevel {} local {}",
-                    cmc$entityName(entity), mountedTarget.subLevelId(), localTarget);
-        } else {
-            if (entity instanceof EntityStickExtension stick) {
-                stick.sable$setPlotPosition(null);
-            }
-            if (entity instanceof EntityMovementExtension movement) {
-                movement.sable$setTrackingSubLevel(null);
-                movement.sable$setLastTrackingSubLevelID(null);
-            }
-            CreateMekanismCompat.LOGGER.debug("Mekanism teleporter server Sable tracking cleared for {} at {}",
-                    cmc$entityName(entity), event.getTarget());
-        }
-        EntitySubLevelUtil.setOldPosNoMovement(entity);
-    }
-
-    @Unique
-    private static String cmc$entityName(Entity entity) {
-        return entity instanceof ServerPlayer player ? player.getGameProfile().getName() : entity.getStringUUID();
+        MountedTeleporterTargeting.syncServerSableTrackingAfterTeleport(entity, mountedTarget, event);
     }
 }
